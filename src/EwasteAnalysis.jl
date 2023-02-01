@@ -122,7 +122,7 @@ function totalvolume(list,arrayb,column)
 end
 #Pie chart showing largest categories by value
 pie_largestcat_value=gui(pie(names_final,arraybig, title = "Largest Categories by Value"))
-png("D:\\workspace\\github\\charts\\pie_largestcat_value")
+png("D:\\workspace\\workingdirectory\\pie_largestcat_value")
 totalvolume(ubrand,totalvolumebrands,"brand")
 totalvolume(uproduct,totalvolumeproducts,"category_code")
 pvolume = DataFrame(product = uproduct,volume = totalvolumeproducts)
@@ -138,9 +138,9 @@ names_final3 = []
 percentagecalc(bvolume[:,2],sum(bvolume[:,2]),namesforchart2,temp,names_final2,volumefilter_brand,2,"volume",bvolume,bvolume[:,2])
 #Pie chart showing largest brand by volume
 pie_largestbrand_volume= gui(pie(names_final2,arraybig, title = "Largest Brands by Volume Sold"))
-png("D:\\workspace\\github\\charts\\pie_largestbrand_volume")
+png("D:\\workspace\\workingdirectory\\pie_largestbrand_volume")
 arraybig = []
 percentagecalc(pvolume[:,2],sum(pvolume[:,2]),namesforchart3,temp,names_final3,volumefilter_product,2,"volume",pvolume,pvolume[:,2])
 #Pie chart showing largest categories by volume
 pie_largestcat_volume = gui(pie(names_final3,arraybig, title = "Largest Categories by Volume"))
-png("D:\\workspace\\github\\charts\\pie_largestcat_volume")
+png("D:\\workspace\\workingdirectory\\pie_largestcat_volume")
