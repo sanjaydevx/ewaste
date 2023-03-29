@@ -6,8 +6,12 @@ using DataStructures
 using Plots
 
 #Read the csv file and loading it into a data frame - M
-data = CSV.read("C:\\Users\\Dell\\Downloads\\data.csv",DataFrame, header = true);
+data = CSV.read("D:\\workspace\\github\\ewaste\\data\\data.csv",DataFrame, header = true);
 data=dropmissing(data)
+
+#Ewaste by time graph and weight generated info
+data_weight = CSV.read("D:\\workspace\\github\\ewaste\\data\\data_weight.csv",DataFrame, header = true);
+data_weight = dropmissing(data_weight)
 
 #Functions
 
@@ -80,7 +84,6 @@ function calculatepercentage!(value,arrayout,smallest,x,frame,valuesfordisplay)
     local arrayvalues = []
     local baseval = 0   
 
-
     baseval = sum(value)
     value = (value*100)/baseval 
     arrayvalues = frame[frame[!,Symbol(x)] .>=(baseval*smallest/100) ,:]
@@ -106,6 +109,90 @@ function calculatepercentage!(value,arrayout,smallest,x,frame,valuesfordisplay)
     push!(valuesfordisplay,sum(array_insignificantvalues))
 end
 
+#Adding columns to the dataframe to store all the data pertaining to the products
+function addcolumns!(list_volume)
+    local volume = 0
+    local total_weight = 0
+    local temp_variable = []
+    local temparray_lifespan = []
+    local temp_array = []
+    local years = 0
+    local counter = 1
+    local temp = 0 
+    local anothertemp = 0
+    local lowercase_temp = 0
+    local array_intermediate = []
+
+    for count in 1:length(list_volume[:,1])
+        temp = split(string(list_volume[count,1]),".")
+        anothertemp = temp[length(temp)]
+        lowercase_temp = (uppercase(anothertemp[1])*anothertemp[2:end])
+        list_volume[count,1] = lowercase_temp
+    end
+  
+
+    for i in unique(list_volume[:,1])
+        if counter < length(list_volume[:,1])+1
+            array_intermediate = data_weight[data_weight[!,Symbol("Item")] .== i ,:]
+            if size(array_intermediate) == (1,4) 
+                list_volume[counter,1] = string(array_intermediate[1,2])
+            end
+            counter = counter +1
+        end
+    end
+   
+
+    volume = "volume"
+    data_weight[!,volume] = zeros(34)
+    temp = 0 
+
+    for i in data_weight[:,2]
+        temp = temp+1
+        counter = 0
+        for g in list_volume[:,1]
+            counter = counter + 1
+            if i == g
+                data_weight.volume[temp] = list_volume[counter,2]
+            end
+        end
+    end
+    
+    for i in 1:length(data_weight[:,1])
+
+        temp_variable = data_weight[i,3]*data_weight[i,5]/1000
+        total_weight = "total weight in kg"
+        push!(temp_array,temp_variable)
+        years = data_weight[i,4]
+        push!(temparray_lifespan,years/12)    
+    
+    end
+
+    volume = "lifespan in years"
+    data_weight[!,total_weight] = temp_array
+    data_weight[!,volume] = temparray_lifespan
+    println(data_weight)
+end    
+
+
+#Function taking cummalative ewaste generated every 3 months
+function populatetotalwaste!(dataframe)
+    local array_intermediate = []
+
+    for i in sort(unique(data_weight[:,7]))
+        array_intermediate = data_weight[data_weight[!,Symbol("lifespan in years")] .== i ,:]
+        push!(dataframe.totalweight,sum(array_intermediate[:,6]))
+        push!(dataframe.lifespan,i)
+    end
+
+    for i in 2:9
+        dataframe[i,1] = floor(dataframe[i-1,1] + dataframe[i,1])
+    end
+
+end
+
+
+
+
 #Main Function 
 function main()
 
@@ -119,9 +206,11 @@ function main()
     local names_fordisplay_brand = []
     local names_fordisplay_product = []
     local names_fordisplay_itemvolume = []
+    local names_fordisplay_weight = []
     local arraybig_itemvalue = []
     local arraybig_itemvolume = []
     local arraybig_brandvolume = []
+    local arraybig_weight = []
     local productsfull = []
     local brands = []
     local dates = []
@@ -163,7 +252,9 @@ function main()
     dataframe = DataFrame(product=[],volume=[],total_value=[])
     pvolume = DataFrame(product = uniqueproduct,volume = totalvolumeproducts)
     bvolume = DataFrame(brand = uniquebrand,volume = totalvolumebrands)
-
+    weight = DataFrame(totalweight = [], lifespan = [])
+    
+    
     #Call the function make the data frame - M
     makedataframe(products,productsfull,dataframe,totalpriceitems)
     
@@ -176,10 +267,9 @@ function main()
     
     #Calling the function (Percentagecalc) - M
     calculatepercentage!(bvolume[:,2],names_fordisplay_brand,2,"volume",bvolume,arraybig_brandvolume)
-    #!Pie chart showing largest brand by volume - M
+    #Pie chart showing largest brand by volume - M
     pie_largestbrand_volume= gui(pie(names_fordisplay_brand,arraybig_brandvolume, title = "Largest Brands by Volume Sold"))
     png("D:\\workspace\\workingdirectory\\pie_largestbrand_volume")
-    
 
     #Calling the function (Percentagecalc) - M
     calculatepercentage!(pvolume[:,2],names_fordisplay_itemvolume,2,"volume",pvolume,arraybig_itemvolume)
@@ -187,8 +277,23 @@ function main()
     #Pie chart showing largest categories by volume - M
     pie_largestcat_volume = gui(pie(names_fordisplay_itemvolume,arraybig_itemvolume, title = "Largest Categories by Volume"))
     png("D:\\workspace\\workingdirectory\\pie_largestcat_volume")
+
+    #Calling the function (Percentagecalc)
+    #calculatepercentage!(data_weight[:,5],names_fordisplay_weight,2,"total weight in Kg",data_weight,arraybig_weight)
+
+    #Pie chart showing products contributing most in terms of waste generated
+
+    
+    #Calling addcolumns
+    addcolumns!(pvolume)
+    
+    populatetotalwaste!(weight)
+
+    #Graph indicating total ewaste generated over time
+    plot_waste = plot(weight[:,2],weight[:,1]/1000,label = false,xlabel = "Time in years",ylabel = "Cumulative weight in tonnes",title = "Total Ewaste Generated Over Time",linewidth = 3)
+    png("D:\\workspace\\workingdirectory\\plot_waste")
     
 end
-
 # Calls the main function
 main()
+
