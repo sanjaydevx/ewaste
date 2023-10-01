@@ -73,7 +73,7 @@ function makedataframe(list,listwithallproducts,dataframe,pricelist)
 end
 
 #Calculate % contribution of products by value and get significant data
-function calculatepercentage!(value,arrayout,smallest,x,frame,valuesfordisplay)
+function calculatepercentage!(value,arrayout,smallest,x,frame,valuesfordisplay,names)
 
     local array_insignificantvalues = []
     local arraylargestcontributors = []
@@ -87,6 +87,7 @@ function calculatepercentage!(value,arrayout,smallest,x,frame,valuesfordisplay)
     baseval = sum(value)
     value = (value*100)/baseval 
     arrayvalues = frame[frame[!,Symbol(x)] .>=(baseval*smallest/100) ,:]
+
     for i in value
         if i<smallest
             push!(array_insignificantvalues,i)
@@ -95,16 +96,19 @@ function calculatepercentage!(value,arrayout,smallest,x,frame,valuesfordisplay)
             push!(arraylargestcontributors,i*baseval/100)
         end
     end
-    push!(arrayrequired,arrayvalues[:,1])
+    
+    push!(arrayrequired,arrayvalues[:,names])
     while length(arrayrequired) == 1
         arrayrequired = arrayrequired[1]
     end
+    
     for count in 1:length(arrayrequired)
         temp = split(string(arrayrequired[count]),".")
         anothertemp = temp[length(temp)]
         lowercase_temp = (uppercase(anothertemp[1])*anothertemp[2:end])
         push!(arrayout,(lowercase_temp*string(" - ")*string(floor(valuesfordisplay[count]))string("%")))
     end
+
     push!(arrayout,("Others"*string(" - ")*string(floor(sum(array_insignificantvalues)))*string("%")))
     push!(valuesfordisplay,sum(array_insignificantvalues))
 end
@@ -170,7 +174,6 @@ function addcolumns!(list_volume)
     volume = "lifespan in years"
     data_weight[!,total_weight] = temp_array
     data_weight[!,volume] = temparray_lifespan
-    println(data_weight)
 end    
 
 
@@ -189,9 +192,6 @@ function populatetotalwaste!(dataframe)
     end
 
 end
-
-
-
 
 #Main Function 
 function main()
@@ -217,6 +217,7 @@ function main()
     local prices = []
     local uniquebrand = 0
     local uniqueproduct = 0
+    local valuelost_out = []
 
     #Arrays containing columnwise data
     productcolumn = data[:,5]
@@ -243,7 +244,7 @@ function main()
 
     #Call the function to get total value - M
     populatetotalvalue!(totalpriceitems,products,"category_code")
-
+    
     #Calling the function - M
     gettotalvolume!(uniquebrand,totalvolumebrands,"brand")
     gettotalvolume!(uniqueproduct,totalvolumeproducts,"category_code")
@@ -257,42 +258,46 @@ function main()
     
     #Call the function make the data frame - M
     makedataframe(products,productsfull,dataframe,totalpriceitems)
-    
+    valuelost_out = dataframe[dataframe.product .== "computers.notebook", :]
+    valuelost_out = (valuelost_out[:,3])
+    println(typeof(valuelost_out))
+    println(floor(valuelost_out[1]/1000))
     #Call the function for percentage calculation - M
-    calculatepercentage!(totalpriceitems,names_fordisplay_product,2,"total_value",dataframe,arraybig_itemvalue)
+    calculatepercentage!(totalpriceitems,names_fordisplay_product,2,"total_value",dataframe,arraybig_itemvalue,1)
 
     #Pie chart showing largest categories by value - M
     pie_largestcat_value=gui(pie(names_fordisplay_product,arraybig_itemvalue, title = "Largest Categories by Value"))
     png("D:\\workspace\\workingdirectory\\pie_largestcat_value")
     
     #Calling the function (Percentagecalc) - M
-    calculatepercentage!(bvolume[:,2],names_fordisplay_brand,2,"volume",bvolume,arraybig_brandvolume)
+    calculatepercentage!(bvolume[:,2],names_fordisplay_brand,2,"volume",bvolume,arraybig_brandvolume,1)
+
     #Pie chart showing largest brand by volume - M
     pie_largestbrand_volume= gui(pie(names_fordisplay_brand,arraybig_brandvolume, title = "Largest Brands by Volume Sold"))
     png("D:\\workspace\\workingdirectory\\pie_largestbrand_volume")
 
     #Calling the function (Percentagecalc) - M
-    calculatepercentage!(pvolume[:,2],names_fordisplay_itemvolume,2,"volume",pvolume,arraybig_itemvolume)
+    calculatepercentage!(pvolume[:,2],names_fordisplay_itemvolume,2,"volume",pvolume,arraybig_itemvolume,1)
     
     #Pie chart showing largest categories by volume - M
     pie_largestcat_volume = gui(pie(names_fordisplay_itemvolume,arraybig_itemvolume, title = "Largest Categories by Volume"))
     png("D:\\workspace\\workingdirectory\\pie_largestcat_volume")
 
-    #Calling the function (Percentagecalc)
-    #calculatepercentage!(data_weight[:,5],names_fordisplay_weight,2,"total weight in Kg",data_weight,arraybig_weight)
-
-    #Pie chart showing products contributing most in terms of waste generated
-
-    
     #Calling addcolumns
     addcolumns!(pvolume)
     
     populatetotalwaste!(weight)
 
-    #Graph indicating total ewaste generated over time
-    plot_waste = plot(weight[:,2],weight[:,1]/1000,label = false,xlabel = "Time in years",ylabel = "Cumulative weight in tonnes",title = "Total Ewaste Generated Over Time",linewidth = 3)
-    png("D:\\workspace\\workingdirectory\\plot_waste")
+    #Calling the function (Percentagecalc)
+    calculatepercentage!(data_weight[:,6],names_fordisplay_weight,2,"total weight in kg",data_weight,arraybig_weight,2)
+
+    #Pie chart showing products contributing most in terms of waste generated
+    pie_largestweight = gui(pie(names_fordisplay_weight,arraybig_weight, title = "Largest Categories by Weight"))
+    png("D:\\workspace\\workingdirectory\\pie_largestweight")
     
+    #Graph indicating total ewaste generated over time
+    plot_waste = bar(["1","2.5","3","4","5","7","10","15"],weight[2:end,1]/1000,label = false,xlabel = "Time in years",ylabel = "Cumulative weight in tonnes",title = "Total Ewaste Generated Over Time",linewidth = 3)
+    png("D:\\workspace\\workingdirectory\\plot_waste")
 end
 # Calls the main function
 main()
